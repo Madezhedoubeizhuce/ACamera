@@ -19,6 +19,8 @@ JNIEXPORT jlong JNICALL
 Java_com_alpha_turbojpeg_TurboJpegJni_tjInitCompress(JNIEnv *env, jobject thiz) {
     LOGD("tjInitCompress");
     tjhandle tjInstance = NULL;
+    volatile int *a = (int *) (NULL);
+    *a = 1;
     tjInstance = tjInitCompress();
     if (tjInstance) {
         return (long) tjInstance;

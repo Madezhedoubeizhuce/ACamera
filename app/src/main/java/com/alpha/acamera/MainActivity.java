@@ -32,6 +32,12 @@ public class MainActivity extends AppCompatActivity {
 
         configureLayout();
         initPermission();
+        initBreakpad();
+    }
+
+    private void initBreakpad() {
+        BreakpadUtil.initExternalReportPath();
+        BreakpadUtil.initBreakPad(this);
     }
 
     private void initPermission() {
