@@ -1,22 +1,25 @@
 package com.alpha.acamera;
 
 import android.app.Activity;
-import android.hardware.Camera;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.FrameLayout;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.alpha.acamera.camera.CameraManager;
+import com.alpha.acamera.camera.CameraControl;
+import com.alpha.acamera.camera.CameraInfo;
+import com.alpha.acamera.camera.camera1.Camera1Control;
 import com.alpha.acamera.camera.widget.ResizeAbleSurfaceView;
 
 public class CameraActivity extends AppCompatActivity {
     private static final String TAG = "CameraActivity";
 
-    private FrameLayout mFlAdjust;
     private ResizeAbleSurfaceView mSVCamera;
+    private Button mBtnSwitchCamera;
+    private CameraControl mCameraControl;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,7 +56,7 @@ public class CameraActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
 
-        CameraManager.getInstance().closeCamera();
+        mCameraControl.closeCamera();
     }
 
     @Override
@@ -62,17 +65,29 @@ public class CameraActivity extends AppCompatActivity {
 
         super.onResume();
 
-        if (!CameraManager.getInstance().isOpen()) {
+        if (!mCameraControl.isOpen() && !mCameraControl.isOpening()) {
             initCamera();
         }
     }
 
     private void configureLayout() {
         mSVCamera = findViewById(R.id.sv_camera);
-        mFlAdjust = findViewById(R.id.fl_adjust_view);
+        mBtnSwitchCamera = findViewById(R.id.btn_switch_camera);
+        mBtnSwitchCamera.setOnClickListener((View view) -> {
+            mCameraControl.closeCamera();
+            mCameraId = mCameraId == CameraInfo.BACK_CAMERA ?
+                    CameraInfo.HEAD_CAMERA : CameraInfo.BACK_CAMERA;
+            mCameraControl.openCamera(mCameraId);
+            mCameraControl.startPreview(mSVCamera);
+        });
     }
 
+    private int mCameraId = CameraInfo.BACK_CAMERA;
+
     private void initCamera() {
-        CameraManager.getInstance().openCamera(Camera.CameraInfo.CAMERA_FACING_FRONT, mSVCamera, mFlAdjust);
+        mCameraControl = new Camera1Control();
+
+        mCameraControl.openCamera(mCameraId);
+        mCameraControl.startPreview(mSVCamera);
     }
 }
