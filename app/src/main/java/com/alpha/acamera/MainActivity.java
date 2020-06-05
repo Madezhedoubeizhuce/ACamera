@@ -14,8 +14,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.alpha.turbojpeg.TurboJpegJni;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,12 +30,6 @@ public class MainActivity extends AppCompatActivity {
 
         configureLayout();
         initPermission();
-        initBreakpad();
-    }
-
-    private void initBreakpad() {
-        BreakpadUtil.initExternalReportPath();
-        BreakpadUtil.initBreakPad(this);
     }
 
     private void initPermission() {
@@ -74,8 +66,6 @@ public class MainActivity extends AppCompatActivity {
     private void configureLayout() {
         mBtnOpenCamera = findViewById(R.id.btn_open_camera);
         mBtnOpenCamera.setOnClickListener((View v) -> {
-            TurboJpegJni jni = new TurboJpegJni();
-            jni.tjInitCompress();
             openCamera();
         });
     }

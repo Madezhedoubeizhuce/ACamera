@@ -1,3 +1,2 @@
-include ':app', ':turbojpeg'
-rootProject.name='ACamera'
-include ':breakpad'
+include ':app'
+rootProject.name = 'ACamera'
