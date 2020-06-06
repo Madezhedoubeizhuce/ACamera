@@ -4,27 +4,25 @@ import android.app.Activity;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
-import android.widget.FrameLayout;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.alpha.acamera.camera.CameraControl;
 import com.alpha.acamera.camera.CameraInfo;
 import com.alpha.acamera.camera.camera1.Camera1Control;
-import com.alpha.acamera.camera.widget.ResizeAbleSurfaceView;
+import com.alpha.acamera.databinding.ActivityCameraBinding;
 
 public class CameraActivity extends AppCompatActivity {
     private static final String TAG = "CameraActivity";
 
-    private ResizeAbleSurfaceView mSVCamera;
-    private Button mBtnSwitchCamera;
+    private ActivityCameraBinding mBinding;
     private CameraControl mCameraControl;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_camera);
+        mBinding = ActivityCameraBinding.inflate(getLayoutInflater());
+        setContentView(mBinding.getRoot());
 
         configureLayout();
         initCamera();
@@ -71,14 +69,12 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void configureLayout() {
-        mSVCamera = findViewById(R.id.sv_camera);
-        mBtnSwitchCamera = findViewById(R.id.btn_switch_camera);
-        mBtnSwitchCamera.setOnClickListener((View view) -> {
+        mBinding.btnSwitchCamera.setOnClickListener((View view) -> {
             mCameraControl.closeCamera();
             mCameraId = mCameraId == CameraInfo.BACK_CAMERA ?
                     CameraInfo.HEAD_CAMERA : CameraInfo.BACK_CAMERA;
             mCameraControl.openCamera(mCameraId);
-            mCameraControl.startPreview(mSVCamera);
+            mCameraControl.startPreview(mBinding.svCamera);
         });
     }
 
@@ -88,6 +84,6 @@ public class CameraActivity extends AppCompatActivity {
         mCameraControl = new Camera1Control();
 
         mCameraControl.openCamera(mCameraId);
-        mCameraControl.startPreview(mSVCamera);
+        mCameraControl.startPreview(mBinding.svCamera);
     }
 }

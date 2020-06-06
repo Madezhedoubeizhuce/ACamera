@@ -6,13 +6,14 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
+import com.alpha.acamera.databinding.ActivityMainBinding;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,12 +22,13 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private static final int REQUEST_CODE = 1;
 
-    private Button mBtnOpenCamera;
+    private ActivityMainBinding mBinding;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        mBinding = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(mBinding.getRoot());
 
         configureLayout();
         initPermission();
@@ -64,8 +66,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void configureLayout() {
-        mBtnOpenCamera = findViewById(R.id.btn_open_camera);
-        mBtnOpenCamera.setOnClickListener((View v) -> {
+        mBinding.btnOpenCamera.setOnClickListener((View v) -> {
             openCamera();
         });
     }
