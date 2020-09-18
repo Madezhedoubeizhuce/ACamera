@@ -10,13 +10,13 @@
         android:layout_height="match_parent">
 
         <com.alpha.acamera.camera.widget.ResizeAbleSurfaceView
-            android:id="@+id/sv_camera"
+            android:id="@+id/svCamera"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
     </FrameLayout>
 
     <Button
-        android:id="@+id/btn_switch_camera"
+        android:id="@+id/btnSwitchCamera"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
