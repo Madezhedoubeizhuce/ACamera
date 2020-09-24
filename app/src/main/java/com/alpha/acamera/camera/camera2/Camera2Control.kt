@@ -14,12 +14,12 @@ import android.os.HandlerThread
 import android.util.Log
 import android.util.Range
 import android.view.Surface
+import android.view.SurfaceHolder
 import android.view.WindowManager
 import androidx.annotation.NonNull
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import com.alpha.acamera.camera.*
-import com.alpha.acamera.camera.camera1.Camera1Control
 import com.alpha.acamera.camera.widget.ResizeAbleSurfaceView
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
@@ -46,6 +46,8 @@ class Camera2Control(private val context: Context) : CameraControl {
     private var mBackgroundThread: HandlerThread? = null
     private var mCameraDevice: CameraDevice? = null
     private var mResizeAbleSurfaceView: ResizeAbleSurfaceView? = null
+    private var surfaceCreated = false
+    private var needCreateCaptureSession = false
 
     /**
      * [CaptureRequest.Builder] for the camera preview
@@ -58,7 +60,11 @@ class Camera2Control(private val context: Context) : CameraControl {
             Log.i(TAG, "onOpened: ")
             mCameraDevice = cameraDevice
             // This method is called when the camera is opened.  We start camera preview here.
-            createCameraPreviewSession()
+            if (surfaceCreated) {
+                createCameraPreviewSession()
+            } else {
+                needCreateCaptureSession = true
+            }
         }
 
         override fun onDisconnected(@NonNull cameraDevice: CameraDevice) {
@@ -233,11 +239,29 @@ class Camera2Control(private val context: Context) : CameraControl {
     override fun startPreview(surfaceView: ResizeAbleSurfaceView?) {
         mResizeAbleSurfaceView = surfaceView
 
+        mResizeAbleSurfaceView?.holder?.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS)
+        mResizeAbleSurfaceView?.holder?.addCallback(object : SurfaceHolder.Callback {
+            override fun surfaceChanged(holder: SurfaceHolder?, format: Int, width: Int, height: Int) {
+            }
+
+            override fun surfaceDestroyed(holder: SurfaceHolder?) {
+            }
+
+            override fun surfaceCreated(holder: SurfaceHolder?) {
+//                TODO("Not yet implemented")
+                surfaceCreated = true
+                if (needCreateCaptureSession) {
+                    createCameraPreviewSession()
+                }
+            }
+
+        })
+
         try {
             mCaptureSession?.setRepeatingRequest(mPreviewRequestBuilder!!.build(),
                     object : CaptureCallback() {}, mBackgroundHandler)
         } catch (e: CameraAccessException) {
-            e.printStackTrace()
+            Log.e(TAG, "startPreview: ", e)
         }
     }
 

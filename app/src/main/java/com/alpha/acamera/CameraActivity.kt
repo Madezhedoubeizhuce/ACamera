@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.alpha.acamera.camera.CameraControl
 import com.alpha.acamera.camera.CameraInfo
 import com.alpha.acamera.camera.camera1.Camera1Control
+import com.alpha.acamera.camera.camera2.Camera2Control
 import kotlinx.android.synthetic.main.activity_camera.*
 
 class CameraActivity : AppCompatActivity() {
@@ -68,7 +69,7 @@ class CameraActivity : AppCompatActivity() {
     private var mCameraId = CameraInfo.BACK_CAMERA
 
     private fun initCamera() {
-        mCameraControl = Camera1Control()
+        mCameraControl = Camera2Control(this)
         mCameraControl.openCamera(mCameraId)
         mCameraControl.startPreview(svCamera)
     }
