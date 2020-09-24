@@ -1,10 +1,10 @@
 package com.alpha.acamera.camera
 
-import com.alpha.acamera.camera.widget.ResizeAbleSurfaceView
+import com.example.android.camera.utils.AutoFitSurfaceView
 
 interface CameraControl {
     fun openCamera(cameraId: Int)
-    fun startPreview(surfaceView: ResizeAbleSurfaceView?)
+    fun startPreview(surfaceView: AutoFitSurfaceView?)
     val isOpen: Boolean
     val isOpening: Boolean
     fun takePicture(callback: PictureCallback?)

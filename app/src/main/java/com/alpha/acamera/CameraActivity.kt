@@ -7,7 +7,6 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import com.alpha.acamera.camera.CameraControl
 import com.alpha.acamera.camera.CameraInfo
-import com.alpha.acamera.camera.camera1.Camera1Control
 import com.alpha.acamera.camera.camera2.Camera2Control
 import kotlinx.android.synthetic.main.activity_camera.*
 

@@ -9,7 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <com.alpha.acamera.camera.widget.ResizeAbleSurfaceView
+        <com.example.android.camera.utils.AutoFitSurfaceView
             android:id="@+id/svCamera"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />

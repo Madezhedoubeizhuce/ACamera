@@ -9,12 +9,12 @@ import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.WindowManager
 import com.alpha.acamera.camera.*
-import com.alpha.acamera.camera.widget.ResizeAbleSurfaceView
 import com.alpha.acamera.util.ThreadPoolUtil
+import com.example.android.camera.utils.AutoFitSurfaceView
 import java.util.concurrent.ExecutorService
 
 class Camera1Control : CameraControl {
-    private var mSurfaceView: ResizeAbleSurfaceView? = null
+    private var mSurfaceView: AutoFitSurfaceView? = null
     private var mCamera: Camera? = null
     private val mCameraId = 0
     override var isOpen = false
@@ -51,7 +51,7 @@ class Camera1Control : CameraControl {
         }
     }
 
-    override fun startPreview(surfaceView: ResizeAbleSurfaceView?) {
+    override fun startPreview(surfaceView: AutoFitSurfaceView?) {
         Log.d(TAG, "startPreview: ")
 
         if (mCamera != null) {
@@ -79,7 +79,7 @@ class Camera1Control : CameraControl {
         }
     }
 
-    private fun setSurfaceListener(surfaceView: ResizeAbleSurfaceView?) {
+    private fun setSurfaceListener(surfaceView: AutoFitSurfaceView?) {
         Log.d(TAG, "setSurfaceListener")
 
         mSurfaceView = surfaceView
@@ -151,42 +151,27 @@ class Camera1Control : CameraControl {
     }
 
     private fun adjustView(cameraWidth: Int, cameraHeight: Int) {
-        var cameraRatio = cameraWidth * 1.0f / cameraHeight
-
         // 设置屏幕方向
         val rotation = (mSurfaceView?.context?.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
                 .defaultDisplay.rotation
         Log.d(TAG, "adjustView: rotation: $rotation")
         when (rotation) {
             Surface.ROTATION_0 -> {
-                cameraRatio = cameraHeight * 1.0f / cameraWidth
                 mCamera?.setDisplayOrientation(90)
             }
-            Surface.ROTATION_90 -> cameraRatio = cameraWidth * 1.0f / cameraHeight
+            Surface.ROTATION_90 -> {
+            }
             Surface.ROTATION_180 -> {
-                cameraRatio = cameraHeight * 1.0f / cameraWidth
                 mCamera?.setDisplayOrientation(270)
             }
             Surface.ROTATION_270 -> {
-                cameraRatio = cameraWidth * 1.0f / cameraHeight
                 mCamera?.setDisplayOrientation(180)
             }
         }
-        Log.d(TAG, "adjustSize: cameraRatio $cameraRatio")
-        var width = mSurfaceView!!.width.toFloat()
-        var height = mSurfaceView!!.height.toFloat()
-        Log.d(TAG, "adjustSize: before width $width, height $height")
-        val ratio = width / height
-        if (ratio < cameraRatio) {
-            height = width / cameraRatio
-        } else {
-            width = height * cameraRatio
-        }
-        Log.d(TAG, "adjustSize: after width $width, height $height")
-        mSurfaceView!!.resize(width.toInt(), height.toInt())
+        mSurfaceView?.setAspectRatio(cameraWidth, cameraHeight)
     }
 
-    private inner class SurfaceListener internal constructor(surfaceView: ResizeAbleSurfaceView?, private val mPreviewCallback: Camera.PreviewCallback?) : SurfaceHolder.Callback {
+    private inner class SurfaceListener internal constructor(surfaceView: AutoFitSurfaceView?, private val mPreviewCallback: Camera.PreviewCallback?) : SurfaceHolder.Callback {
         private val mHolder: SurfaceHolder = surfaceView!!.holder
         override fun surfaceCreated(holder: SurfaceHolder) {}
         override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
