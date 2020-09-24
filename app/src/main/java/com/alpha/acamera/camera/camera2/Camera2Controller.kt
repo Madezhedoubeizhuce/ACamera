@@ -25,7 +25,7 @@ import com.example.android.camera.utils.AutoFitSurfaceView
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 
-class Camera2Control(private val context: Context) : CameraControl {
+class Camera2Controller(private val context: Context) : CameraController {
     companion object {
         private const val TAG = "Camera2Control"
     }
@@ -59,14 +59,32 @@ class Camera2Control(private val context: Context) : CameraControl {
     private var mPreviewRequestBuilder: CaptureRequest.Builder? = null
 
     private var mCaptureSession: CameraCaptureSession? = null
+    override fun startCamera(cameraId: Int) {
+//        TODO("Not yet implemented")
+    }
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     override fun openCamera(cameraId: Int) {
         this.cameraId = cameraId.toString()
 
         val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
-        startBackgroundThread()
-        configureCamera(cameraManager, this.cameraId)
+
+        // start camera thread
+        mBackgroundThread = HandlerThread("CameraBackground")
+        mBackgroundThread?.apply {
+            start()
+            mBackgroundHandler = Handler(looper)
+        }
+
+        // config camera
+        val characteristics: CameraCharacteristics = cameraManager.getCameraCharacteristics(this.cameraId)
+        mImageReader = ImageReader.newInstance(CameraParam.width, CameraParam.height,
+                ImageFormat.YUV_420_888, 2)
+        mImageReader?.setOnImageAvailableListener(OnImageAvailableListenerImpl(), mBackgroundHandler)
+        mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION)
+        // 设置屏幕方向
+        val rotation = (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
+                .defaultDisplay.rotation
 
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             return
@@ -99,26 +117,57 @@ class Camera2Control(private val context: Context) : CameraControl {
         }, mBackgroundHandler)
     }
 
-    private fun startBackgroundThread() {
-        mBackgroundThread = HandlerThread("CameraBackground")
-        mBackgroundThread?.apply {
-            start()
-            mBackgroundHandler = Handler(looper)
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    override fun startPreview(surfaceView: AutoFitSurfaceView?) {
+        mSurfaceView = surfaceView
+
+        mSurfaceView?.holder?.addCallback(object : SurfaceHolder.Callback {
+            override fun surfaceChanged(holder: SurfaceHolder?, format: Int, width: Int, height: Int) {
+            }
+
+            override fun surfaceDestroyed(holder: SurfaceHolder?) {
+            }
+
+            override fun surfaceCreated(holder: SurfaceHolder?) {
+                surfaceCreated = true
+                if (needCreateCaptureSession) {
+                    createCameraPreviewSession()
+                }
+            }
+        })
+
+        try {
+            mCaptureSession?.setRepeatingRequest(mPreviewRequestBuilder!!.build(),
+                    object : CaptureCallback() {}, mBackgroundHandler)
+        } catch (e: CameraAccessException) {
+            Log.e(TAG, "startPreview: ", e)
         }
     }
 
+    override fun stopPreview() {
+//        TODO("Not yet implemented")
+    }
+
+    override fun takePicture(callback: PictureCallback?) {
+//        TODO("Not yet implemented")
+    }
+
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    private fun configureCamera(cameraManager: CameraManager, cameraId: String) {
-        val characteristics: CameraCharacteristics = cameraManager.getCameraCharacteristics(cameraId)
-        mImageReader = ImageReader.newInstance(CameraParam.width, CameraParam.height,
-                ImageFormat.YUV_420_888, 2)
-        mImageReader?.setOnImageAvailableListener(OnImageAvailableListenerImpl(), mBackgroundHandler)
+    override fun closeCamera() {
+        mCameraDevice?.close()
+        mBackgroundThread?.quit()
+        isOpen = false
+        mBackgroundThread = null
+        mCaptureSession = null
+        mCameraDevice = null
+    }
 
-        mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION)
+    override fun setErrListener(mErrListener: ErrorListener?) {
+//        TODO("Not yet implemented")
+    }
 
-        // 设置屏幕方向
-        val rotation = (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
-                .defaultDisplay.rotation
+    override fun onPreviewFrame(callback: PreviewCallback?) {
+//        TODO("Not yet implemented")
     }
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
@@ -195,58 +244,6 @@ class Camera2Control(private val context: Context) : CameraControl {
             if (result == null) result = range else if (range.lower <= 15 && range.upper - range.lower > result.upper - result.lower) result = range
         }
         return result
-    }
-
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    override fun startPreview(surfaceView: AutoFitSurfaceView?) {
-        mSurfaceView = surfaceView
-
-        mSurfaceView?.holder?.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS)
-        mSurfaceView?.holder?.addCallback(object : SurfaceHolder.Callback {
-            override fun surfaceChanged(holder: SurfaceHolder?, format: Int, width: Int, height: Int) {
-            }
-
-            override fun surfaceDestroyed(holder: SurfaceHolder?) {
-            }
-
-            override fun surfaceCreated(holder: SurfaceHolder?) {
-                surfaceCreated = true
-                if (needCreateCaptureSession) {
-                    createCameraPreviewSession()
-                }
-            }
-
-        })
-
-        try {
-            mCaptureSession?.setRepeatingRequest(mPreviewRequestBuilder!!.build(),
-                    object : CaptureCallback() {}, mBackgroundHandler)
-        } catch (e: CameraAccessException) {
-            Log.e(TAG, "startPreview: ", e)
-        }
-    }
-
-    override fun takePicture(callback: PictureCallback?) {
-//        TODO("Not yet implemented")
-    }
-
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    override fun closeCamera() {
-//        TODO("Not yet implemented")
-        mCameraDevice?.close()
-        mBackgroundThread?.quit()
-        isOpen = false
-        mBackgroundThread = null
-        mCaptureSession = null
-        mCameraDevice = null
-    }
-
-    override fun setErrListener(mErrListener: ErrorListener?) {
-//        TODO("Not yet implemented")
-    }
-
-    override fun onPreviewFrame(callback: PreviewCallback?) {
-//        TODO("Not yet implemented")
     }
 
     private inner class OnImageAvailableListenerImpl : OnImageAvailableListener {

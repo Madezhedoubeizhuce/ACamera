@@ -5,9 +5,9 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import com.alpha.acamera.camera.CameraControl
+import com.alpha.acamera.camera.CameraController
 import com.alpha.acamera.camera.CameraInfo
-import com.alpha.acamera.camera.camera2.Camera2Control
+import com.alpha.acamera.camera.camera2.Camera2Controller
 import kotlinx.android.synthetic.main.activity_camera.*
 
 class CameraActivity : AppCompatActivity() {
@@ -15,7 +15,7 @@ class CameraActivity : AppCompatActivity() {
         private const val TAG = "CameraActivity"
     }
 
-    private lateinit var mCameraControl: CameraControl
+    private lateinit var mCameraController: CameraController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,31 +45,31 @@ class CameraActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-        mCameraControl.closeCamera()
+        mCameraController.closeCamera()
     }
 
     override fun onResume() {
         hideNavigationBar(this)
         super.onResume()
-        if (!mCameraControl.isOpen && !mCameraControl.isOpening) {
+        if (!mCameraController.isOpen && !mCameraController.isOpening) {
             initCamera()
         }
     }
 
     private fun configureLayout() {
         btnSwitchCamera.setOnClickListener {
-            mCameraControl.closeCamera()
+            mCameraController.closeCamera()
             mCameraId = if (mCameraId == CameraInfo.BACK_CAMERA) CameraInfo.HEAD_CAMERA else CameraInfo.BACK_CAMERA
-            mCameraControl.openCamera(mCameraId)
-            mCameraControl.startPreview(svCamera)
+            mCameraController.openCamera(mCameraId)
+            mCameraController.startPreview(svCamera)
         }
     }
 
     private var mCameraId = CameraInfo.BACK_CAMERA
 
     private fun initCamera() {
-        mCameraControl = Camera2Control(this)
-        mCameraControl.openCamera(mCameraId)
-        mCameraControl.startPreview(svCamera)
+        mCameraController = Camera2Controller(this)
+        mCameraController.openCamera(mCameraId)
+        mCameraController.startPreview(svCamera)
     }
 }

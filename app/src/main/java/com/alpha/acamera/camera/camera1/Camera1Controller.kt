@@ -13,7 +13,7 @@ import com.alpha.acamera.util.ThreadPoolUtil
 import com.example.android.camera.utils.AutoFitSurfaceView
 import java.util.concurrent.ExecutorService
 
-class Camera1Control : CameraControl {
+class Camera1Controller : CameraController {
     private var mSurfaceView: AutoFitSurfaceView? = null
     private var mCamera: Camera? = null
     private val mCameraId = 0
@@ -27,6 +27,9 @@ class Camera1Control : CameraControl {
     private val mExec: ExecutorService = ThreadPoolUtil.newSingleThreadPool()
     private val mHandler: Handler = Handler(Looper.getMainLooper())
     private var mClose = false
+    override fun startCamera(cameraId: Int) {
+//        TODO("Not yet implemented")
+    }
 
     override fun openCamera(cameraId: Int) {
         isOpening = true
@@ -77,6 +80,10 @@ class Camera1Control : CameraControl {
                 Log.d(TAG, "startPreview: success")
             }
         }
+    }
+
+    override fun stopPreview() {
+//        TODO("Not yet implemented")
     }
 
     private fun setSurfaceListener(surfaceView: AutoFitSurfaceView?) {
