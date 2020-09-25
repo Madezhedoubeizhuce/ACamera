@@ -186,6 +186,7 @@ class Camera1Controller : CameraController {
         }
 
         override fun surfaceDestroyed(holder: SurfaceHolder) {}
+
         fun startPreview() {
             if (mHolder.surface == null) {
                 // preview surface does not exist

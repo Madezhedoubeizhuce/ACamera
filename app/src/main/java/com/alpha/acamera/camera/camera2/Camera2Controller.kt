@@ -16,15 +16,17 @@ import android.util.Log
 import android.util.Range
 import android.view.Surface
 import android.view.SurfaceHolder
-import android.view.WindowManager
 import androidx.annotation.NonNull
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import com.alpha.acamera.camera.*
 import com.example.android.camera.utils.AutoFitSurfaceView
-import java.util.*
+import kotlinx.coroutines.*
 import java.util.concurrent.locks.ReentrantLock
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
+@RequiresApi(Build.VERSION_CODES.LOLLIPOP)
 class Camera2Controller(private val context: Context) : CameraController {
     companion object {
         private const val TAG = "Camera2Control"
@@ -35,18 +37,22 @@ class Camera2Controller(private val context: Context) : CameraController {
     override var isOpening = false
         private set
 
+    private val cameraManager: CameraManager by lazy {
+        val appContext = context.applicationContext
+        appContext.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+    }
     private var mImageReader: ImageReader? = null
     private val previewCallback: PreviewCallback? = null
-    private var mBackgroundHandler: Handler? = null
     private var mSensorOrientation: Int? = null
     private var cameraId = "0"
-
-    private val handler = Handler(Looper.getMainLooper())
 
     /**
      * An additional thread for running tasks that shouldn't block the UI.
      */
-    private var mBackgroundThread: HandlerThread? = null
+    private var mCameraThread = HandlerThread("CameraThread").apply { start() }
+    private var mCameraHandler = Handler(mCameraThread.looper)
+    private var coroutineScope = CoroutineScope(Job() + Dispatchers.Main)
+
     private var mCameraDevice: CameraDevice? = null
     private var mSurfaceView: AutoFitSurfaceView? = null
 
@@ -57,67 +63,40 @@ class Camera2Controller(private val context: Context) : CameraController {
      * [CaptureRequest.Builder] for the camera preview
      */
     private var mPreviewRequestBuilder: CaptureRequest.Builder? = null
-
     private var mCaptureSession: CameraCaptureSession? = null
     override fun startCamera(cameraId: Int) {
 //        TODO("Not yet implemented")
     }
 
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     override fun openCamera(cameraId: Int) {
         this.cameraId = cameraId.toString()
+        coroutineScope.launch {
+            try {// config camera
+                configureCamera(cameraManager)
+                configureImageReader()
 
-        val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
-
-        // start camera thread
-        mBackgroundThread = HandlerThread("CameraBackground")
-        mBackgroundThread?.apply {
-            start()
-            mBackgroundHandler = Handler(looper)
-        }
-
-        // config camera
-        val characteristics: CameraCharacteristics = cameraManager.getCameraCharacteristics(this.cameraId)
-        mImageReader = ImageReader.newInstance(CameraParam.width, CameraParam.height,
-                ImageFormat.YUV_420_888, 2)
-        mImageReader?.setOnImageAvailableListener(OnImageAvailableListenerImpl(), mBackgroundHandler)
-        mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION)
-        // 设置屏幕方向
-        val rotation = (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
-                .defaultDisplay.rotation
-
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            return
-        }
-
-        isOpening = true
-        cameraManager.openCamera(cameraId.toString(), object : CameraDevice.StateCallback() {
-            override fun onOpened(@NonNull cameraDevice: CameraDevice) {
-                Log.i(TAG, "onOpened: ")
-                isOpen = true
+                isOpening = true
+                mCameraDevice = openCamera(cameraManager, cameraId.toString(), mCameraHandler)
                 isOpening = false
-                mCameraDevice = cameraDevice
-                // This method is called when the camera is opened.  We start camera preview here.
+                isOpen = true
+
                 if (surfaceCreated) {
-                    createCameraPreviewSession()
+                    setSurfaceRatio(CameraParam.width, CameraParam.height)
+                    mCaptureSession = createCaptureSession()
+                    mSurfaceView?.let {
+                        mCaptureSession?.setRepeatingRequest(mPreviewRequestBuilder!!.build(),
+                                object : CaptureCallback() {}, mCameraHandler)
+                    }
                 } else {
                     needCreateCaptureSession = true
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "openCamera: ", e)
+                isOpen = false
             }
-
-            override fun onDisconnected(@NonNull cameraDevice: CameraDevice) {
-                Log.i(TAG, "onDisconnected: ")
-                isOpening = false
-            }
-
-            override fun onError(@NonNull cameraDevice: CameraDevice, error: Int) {
-                Log.e(TAG, "onError: $error")
-                isOpening = false
-            }
-        }, mBackgroundHandler)
+        }
     }
 
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     override fun startPreview(surfaceView: AutoFitSurfaceView?) {
         mSurfaceView = surfaceView
 
@@ -131,17 +110,17 @@ class Camera2Controller(private val context: Context) : CameraController {
             override fun surfaceCreated(holder: SurfaceHolder?) {
                 surfaceCreated = true
                 if (needCreateCaptureSession) {
-                    createCameraPreviewSession()
+                    coroutineScope.launch {
+                        setSurfaceRatio(CameraParam.width, CameraParam.height)
+                        mCaptureSession = createCaptureSession()
+                        mSurfaceView?.let {
+                            mCaptureSession?.setRepeatingRequest(mPreviewRequestBuilder!!.build(),
+                                    object : CaptureCallback() {}, mCameraHandler)
+                        }
+                    }
                 }
             }
         })
-
-        try {
-            mCaptureSession?.setRepeatingRequest(mPreviewRequestBuilder!!.build(),
-                    object : CaptureCallback() {}, mBackgroundHandler)
-        } catch (e: CameraAccessException) {
-            Log.e(TAG, "startPreview: ", e)
-        }
     }
 
     override fun stopPreview() {
@@ -155,9 +134,7 @@ class Camera2Controller(private val context: Context) : CameraController {
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     override fun closeCamera() {
         mCameraDevice?.close()
-        mBackgroundThread?.quit()
         isOpen = false
-        mBackgroundThread = null
         mCaptureSession = null
         mCameraDevice = null
     }
@@ -170,58 +147,78 @@ class Camera2Controller(private val context: Context) : CameraController {
 //        TODO("Not yet implemented")
     }
 
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    private fun createCameraPreviewSession() {
-        handler.post {
-            Log.d(TAG, "createCameraPreviewSession: ${Thread.currentThread().name}")
-            mSurfaceView?.setAspectRatio(CameraParam.width, CameraParam.height)
-            // To ensure that size is set, initialize camera preview
-            mSurfaceView?.post {
-                try {
-                    val surface: Surface = mSurfaceView!!.holder.surface
+    private fun configureCamera(cameraManager: CameraManager) {
+        val characteristics = cameraManager.getCameraCharacteristics(this.cameraId)
+        mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION)
+    }
 
-                    // We set up a CaptureRequest.Builder with the output Surface.
-                    mPreviewRequestBuilder = mCameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
-                    //设置自动曝光帧率范围
-                    mPreviewRequestBuilder?.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, getRange())
-                    mPreviewRequestBuilder?.set(CaptureRequest.CONTROL_AF_MODE,
-                            CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
-                    mPreviewRequestBuilder?.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF)
-                    mPreviewRequestBuilder?.addTarget(surface)
-                    mPreviewRequestBuilder?.addTarget(mImageReader!!.surface)
+    private fun configureImageReader() {
+        mImageReader = ImageReader.newInstance(CameraParam.width, CameraParam.height,
+                ImageFormat.YUV_420_888, 2)
+        mImageReader?.setOnImageAvailableListener(OnImageAvailableListenerImpl(), mCameraHandler)
+    }
 
-                    // Here, we create a CameraCaptureSession for camera preview.
-                    mCameraDevice!!.createCaptureSession(Arrays.asList(surface, mImageReader!!.surface),
-                            object : CameraCaptureSession.StateCallback() {
-                                override fun onConfigured(@NonNull cameraCaptureSession: CameraCaptureSession) {
-                                    Log.i(TAG, "onConfigured: ")
-                                    // The camera is already closed
-                                    if (null == mCameraDevice) {
-                                        return
-                                    }
+    private suspend fun openCamera(
+            cameraManager: CameraManager,
+            cameraID: String,
+            handler: Handler): CameraDevice? = suspendCancellableCoroutine { cont ->
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            cont.resumeWithException(RuntimeException("need camera permission"))
+            return@suspendCancellableCoroutine
+        }
 
-                                    // When the session is ready, we start displaying the preview.
-                                    mCaptureSession = cameraCaptureSession
-
-                                    try {
-                                        mSurfaceView?.let {
-                                            mCaptureSession?.setRepeatingRequest(mPreviewRequestBuilder!!.build(),
-                                                    object : CaptureCallback() {}, mBackgroundHandler)
-                                        }
-                                    } catch (e: CameraAccessException) {
-                                        Log.e(TAG, "onConfigured: ", e)
-                                    }
-                                }
-
-                                override fun onConfigureFailed(
-                                        @NonNull cameraCaptureSession: CameraCaptureSession) {
-                                    Log.e(TAG, "onConfigureFailed: $cameraCaptureSession")
-                                }
-                            }, mBackgroundHandler)
-                } catch (e: CameraAccessException) {
-                    e.printStackTrace()
-                }
+        cameraManager.openCamera(cameraID, object : CameraDevice.StateCallback() {
+            override fun onOpened(@NonNull cameraDevice: CameraDevice) {
+                cont.resume(cameraDevice)
             }
+
+            override fun onDisconnected(@NonNull cameraDevice: CameraDevice) {
+                Log.d(TAG, "onDisconnected: $cameraDevice")
+//                cont.resumeWithException(RuntimeException("camera disconnected"))
+            }
+
+            override fun onError(@NonNull cameraDevice: CameraDevice, error: Int) {
+                cont.resumeWithException(RuntimeException("open camera error $error"))
+            }
+        }, handler)
+    }
+
+    private suspend fun setSurfaceRatio(width: Int, height: Int) = suspendCancellableCoroutine<Unit> { cont ->
+        mSurfaceView?.setAspectRatio(width, height)
+        // To ensure that size is set, initialize camera preview
+        mSurfaceView?.post {
+            cont.resume(Unit)
+        }
+    }
+
+    private suspend fun createCaptureSession(): CameraCaptureSession = suspendCancellableCoroutine { cont ->
+        try {
+            val surface: Surface = mSurfaceView!!.holder.surface
+
+            // We set up a CaptureRequest.Builder with the output Surface.
+            mPreviewRequestBuilder = mCameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+            //设置自动曝光帧率范围
+            mPreviewRequestBuilder?.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, getRange())
+            mPreviewRequestBuilder?.set(CaptureRequest.CONTROL_AF_MODE,
+                    CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
+            mPreviewRequestBuilder?.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF)
+            mPreviewRequestBuilder?.addTarget(surface)
+            mPreviewRequestBuilder?.addTarget(mImageReader!!.surface)
+
+            // Here, we create a CameraCaptureSession for camera preview.
+            mCameraDevice!!.createCaptureSession(listOf(surface, mImageReader!!.surface),
+                    object : CameraCaptureSession.StateCallback() {
+                        override fun onConfigured(@NonNull cameraCaptureSession: CameraCaptureSession) {
+                            cont.resume(cameraCaptureSession)
+                        }
+
+                        override fun onConfigureFailed(
+                                @NonNull cameraCaptureSession: CameraCaptureSession) {
+                            cont.resumeWithException(RuntimeException("configure capture session failed!"))
+                        }
+                    }, mCameraHandler)
+        } catch (e: CameraAccessException) {
+            cont.resumeWithException(e)
         }
     }
 
