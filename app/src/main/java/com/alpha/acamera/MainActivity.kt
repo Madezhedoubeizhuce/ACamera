@@ -9,7 +9,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
@@ -20,9 +19,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+//        setContentView(R.layout.activity_main)
 
-        configureLayout()
         initPermission()
     }
 
@@ -38,6 +36,8 @@ class MainActivity : AppCompatActivity() {
         if (requestList.size > 0) {
             ActivityCompat.requestPermissions(this,
                     requestList.toTypedArray(), REQUEST_CODE)
+        } else {
+            openCamera()
         }
     }
 
@@ -46,6 +46,7 @@ class MainActivity : AppCompatActivity() {
             if (grantResults.isNotEmpty()
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Log.d(TAG, "onRequestPermissionsResult: success")
+                openCamera()
             } else {
                 Toast.makeText(this, "请授予应用权限后使用", Toast.LENGTH_SHORT).show()
                 finish()
@@ -53,12 +54,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun configureLayout() {
-        btnOpenCamera.setOnClickListener { openCamera() }
-    }
-
     private fun openCamera() {
         val intent = Intent(this, CameraActivity::class.java)
         startActivity(intent)
+        finish()
     }
 }
