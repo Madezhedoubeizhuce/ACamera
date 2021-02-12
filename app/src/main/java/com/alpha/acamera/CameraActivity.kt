@@ -1,9 +1,13 @@
 package com.alpha.acamera
 
 import android.app.Activity
+import android.content.Context
+import android.graphics.Point
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
+import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import com.alpha.acamera.camera.CameraController
 import com.alpha.acamera.camera.CameraInfo
@@ -21,6 +25,7 @@ class CameraActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_camera)
+
         configureLayout()
         initCamera()
     }
@@ -50,7 +55,6 @@ class CameraActivity : AppCompatActivity() {
     }
 
     override fun onResume() {
-        hideNavigationBar(this)
         super.onResume()
         if (!mCameraController.isOpen && !mCameraController.isOpening) {
             initCamera()
@@ -63,6 +67,12 @@ class CameraActivity : AppCompatActivity() {
             mCameraId = if (mCameraId == CameraInfo.BACK_CAMERA) CameraInfo.HEAD_CAMERA else CameraInfo.BACK_CAMERA
             mCameraController.openCamera(mCameraId)
             mCameraController.startPreview(svCamera)
+        }
+        btnSwitchCamera.post {
+            val wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            val point = Point()
+            wm.defaultDisplay.getSize(point)
+            Log.d(TAG, "configureLayout: ${point.x} x ${point.y}")
         }
     }
 

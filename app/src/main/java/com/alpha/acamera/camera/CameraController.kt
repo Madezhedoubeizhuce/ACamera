@@ -1,6 +1,6 @@
 package com.alpha.acamera.camera
 
-import com.example.android.camera.utils.AutoFitSurfaceView
+import com.alpha.acamera.camera.widget.AutoFitSurfaceView
 
 interface CameraController {
     /**

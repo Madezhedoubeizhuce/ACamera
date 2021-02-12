@@ -11,7 +11,6 @@ import android.media.ImageReader.OnImageAvailableListener
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
-import android.os.Looper
 import android.util.Log
 import android.util.Range
 import android.view.Surface
@@ -20,7 +19,7 @@ import androidx.annotation.NonNull
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import com.alpha.acamera.camera.*
-import com.example.android.camera.utils.AutoFitSurfaceView
+import com.alpha.acamera.camera.widget.AutoFitSurfaceView
 import kotlinx.coroutines.*
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.coroutines.resume
@@ -70,12 +69,12 @@ class Camera2Controller(private val context: Context) : CameraController {
 
     override fun openCamera(cameraId: Int) {
         this.cameraId = cameraId.toString()
+        isOpening = true
         coroutineScope.launch {
             try {// config camera
                 configureCamera(cameraManager)
                 configureImageReader()
 
-                isOpening = true
                 mCameraDevice = openCamera(cameraManager, cameraId.toString(), mCameraHandler)
                 isOpening = false
                 isOpen = true
@@ -240,6 +239,13 @@ class Camera2Controller(private val context: Context) : CameraController {
 //                continue;
             if (result == null) result = range else if (range.lower <= 15 && range.upper - range.lower > result.upper - result.lower) result = range
         }
+
+        val streamConfigurationMap = chars.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+        val sizeArr = streamConfigurationMap?.getOutputSizes(ImageFormat.YUV_420_888)
+        for (size in sizeArr ?: emptyArray()) {
+            Log.d(TAG, "getRange: size $size")
+        }
+
         return result
     }
 

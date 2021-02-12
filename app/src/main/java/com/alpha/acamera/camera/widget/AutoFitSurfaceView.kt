@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package com.example.android.camera.utils
+package com.alpha.acamera.camera.widget
 
 import android.content.Context
 import android.util.AttributeSet
-import android.util.Log
 import android.view.SurfaceView
 import kotlin.math.roundToInt
 
@@ -31,8 +30,12 @@ class AutoFitSurfaceView @JvmOverloads constructor(
         attrs: AttributeSet? = null,
         defStyle: Int = 0
 ) : SurfaceView(context, attrs, defStyle) {
-
+    private var aspectWidth = 0
+    private var aspectHeight = 0
     private var aspectRatio = 0f
+    private var needMove = false
+    private var originW = 0
+    private var originH = 0
 
     /**
      * Sets the aspect ratio for this view. The size of the view will be
@@ -43,39 +46,61 @@ class AutoFitSurfaceView @JvmOverloads constructor(
      */
     fun setAspectRatio(width: Int, height: Int) {
         require(width > 0 && height > 0) { "Size cannot be negative" }
+
         aspectRatio = width.toFloat() / height.toFloat()
+        calcAspectSize(aspectRatio)
+        originW = this.width
+        originH = this.height
+
+        needMove = true
         holder.setFixedSize(width, height)
         requestLayout()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-        val width = MeasureSpec.getSize(widthMeasureSpec)
-        val height = MeasureSpec.getSize(heightMeasureSpec)
         if (aspectRatio == 0f) {
-            setMeasuredDimension(width, height)
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+            originW = measuredWidth
+            originH = measuredHeight
         } else {
-            // Performs center-crop transformation of the camera frames
-            val newWidth: Int
-            val newHeight: Int
-            val actualRatio = if (width > height) aspectRatio else 1f / aspectRatio
-            if (width < height * actualRatio) {
-                newHeight = height
-                newWidth = (height * actualRatio).roundToInt()
-            } else {
-                newWidth = width
-                newHeight = (width / actualRatio).roundToInt()
-            }
-
-            Log.d(TAG, "Measured dimensions set: $newWidth x $newHeight")
-            setMeasuredDimension(newWidth, newHeight)
+            setMeasuredDimension(aspectWidth, aspectHeight)
         }
-
-
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
+
+        if (needMove) {
+            needMove = false
+
+            val exceedH = measuredHeight - originH
+            val exceedW = measuredWidth - originW
+
+            val newLeft = left - exceedW / 2
+            val newRight = right - exceedW / 2
+            val newTop = top - exceedH / 2
+            val newBottom = bottom - exceedH / 2
+
+            if (exceedW > 0 || exceedH > 0) {
+                layout(newLeft, newTop, newRight, newBottom)
+            }
+        }
+    }
+
+    private fun calcAspectSize(aspectRatio: Float) {
+        val newWidth: Int
+        val newHeight: Int
+        val actualRatio = if (this.width > this.height) aspectRatio else 1f / aspectRatio
+        if (this.width < this.height * actualRatio) {
+            newHeight = this.height
+            newWidth = (this.height * actualRatio).roundToInt()
+        } else {
+            newWidth = this.width
+            newHeight = (this.width / actualRatio).roundToInt()
+        }
+
+        aspectWidth = newWidth
+        aspectHeight = newHeight
     }
 
     companion object {

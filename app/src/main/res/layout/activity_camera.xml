@@ -5,11 +5,16 @@
     android:layout_height="match_parent"
     tools:context=".CameraActivity">
 
-    <com.example.android.camera.utils.AutoFitSurfaceView
-        android:id="@+id/svCamera"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@+id/layoutControl" />
+        android:layout_above="@+id/layoutControl">
+
+        <com.alpha.acamera.camera.widget.AutoFitSurfaceView
+            android:id="@+id/svCamera"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </FrameLayout>
 
     <FrameLayout
         android:id="@+id/stubCameraParams"

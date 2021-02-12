@@ -10,7 +10,7 @@ import android.view.SurfaceHolder
 import android.view.WindowManager
 import com.alpha.acamera.camera.*
 import com.alpha.acamera.util.ThreadPoolUtil
-import com.example.android.camera.utils.AutoFitSurfaceView
+import com.alpha.acamera.camera.widget.AutoFitSurfaceView
 import java.util.concurrent.ExecutorService
 
 class Camera1Controller : CameraController {
