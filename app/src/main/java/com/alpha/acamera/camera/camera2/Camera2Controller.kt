@@ -36,6 +36,10 @@ class Camera2Controller(private val context: Context) : CameraController {
     override var isOpening = false
         private set
 
+    private var width = CameraParam.width
+    private var height = CameraParam.height
+    private var targetFpsRange: Range<Int>? = null
+
     private val cameraManager: CameraManager by lazy {
         val appContext = context.applicationContext
         appContext.getSystemService(Context.CAMERA_SERVICE) as CameraManager
@@ -72,7 +76,7 @@ class Camera2Controller(private val context: Context) : CameraController {
         isOpening = true
         coroutineScope.launch {
             try {// config camera
-                configureCamera(cameraManager)
+                readParams(cameraManager)
                 configureImageReader()
 
                 mCameraDevice = openCamera(cameraManager, cameraId.toString(), mCameraHandler)
@@ -80,7 +84,7 @@ class Camera2Controller(private val context: Context) : CameraController {
                 isOpen = true
 
                 if (surfaceCreated) {
-                    setSurfaceRatio(CameraParam.width, CameraParam.height)
+                    setSurfaceRatio(width, height)
                     mCaptureSession = createCaptureSession()
                     mSurfaceView?.let {
                         mCaptureSession?.setRepeatingRequest(mPreviewRequestBuilder!!.build(),
@@ -110,7 +114,7 @@ class Camera2Controller(private val context: Context) : CameraController {
                 surfaceCreated = true
                 if (needCreateCaptureSession) {
                     coroutineScope.launch {
-                        setSurfaceRatio(CameraParam.width, CameraParam.height)
+                        setSurfaceRatio(width, height)
                         mCaptureSession = createCaptureSession()
                         mSurfaceView?.let {
                             mCaptureSession?.setRepeatingRequest(mPreviewRequestBuilder!!.build(),
@@ -132,6 +136,8 @@ class Camera2Controller(private val context: Context) : CameraController {
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     override fun closeCamera() {
+        width = CameraParam.width
+        height = CameraParam.height
         mCameraDevice?.close()
         isOpen = false
         mCaptureSession = null
@@ -146,13 +152,43 @@ class Camera2Controller(private val context: Context) : CameraController {
 //        TODO("Not yet implemented")
     }
 
-    private fun configureCamera(cameraManager: CameraManager) {
+    private fun readParams(cameraManager: CameraManager) {
         val characteristics = cameraManager.getCameraCharacteristics(this.cameraId)
         mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION)
+
+        Log.d(TAG, "readParams: SENSOR_ORIENTATION $mSensorOrientation")
+
+        val streamConfigurationMap = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+        val sizeArr = streamConfigurationMap?.getOutputSizes(ImageFormat.YUV_420_888)
+        var maxW = width
+        var maxH = height
+        for (size in sizeArr ?: emptyArray()) {
+//            Log.d(TAG, "getRange: size $size")
+            if (size.width > maxW && size.height > maxH) {
+                maxW = size.width
+                maxH = size.height
+            }
+        }
+        width = maxW
+        height = maxH
+        Log.d(TAG, "readParams MaxSize: $width x $height")
+
+        val ranges = characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES)!!
+        for (range in ranges) {
+//            Log.d(TAG, "getRange: [" + range.lower + ", " + range.upper + "]")
+            //帧率不能太低，大于10
+//            if (range.getLower() < 10)
+//                continue;
+            if (targetFpsRange == null)
+                targetFpsRange = range
+            else if (range.lower <= 15
+                    && range.upper - range.lower > targetFpsRange!!.upper - targetFpsRange!!.lower)
+                targetFpsRange = range
+        }
     }
 
     private fun configureImageReader() {
-        mImageReader = ImageReader.newInstance(CameraParam.width, CameraParam.height,
+        mImageReader = ImageReader.newInstance(width, height,
                 ImageFormat.YUV_420_888, 2)
         mImageReader?.setOnImageAvailableListener(OnImageAvailableListenerImpl(), mCameraHandler)
     }
@@ -197,7 +233,7 @@ class Camera2Controller(private val context: Context) : CameraController {
             // We set up a CaptureRequest.Builder with the output Surface.
             mPreviewRequestBuilder = mCameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
             //设置自动曝光帧率范围
-            mPreviewRequestBuilder?.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, getRange())
+            mPreviewRequestBuilder?.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, targetFpsRange)
             mPreviewRequestBuilder?.set(CaptureRequest.CONTROL_AF_MODE,
                     CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
             mPreviewRequestBuilder?.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF)
@@ -219,34 +255,6 @@ class Camera2Controller(private val context: Context) : CameraController {
         } catch (e: CameraAccessException) {
             cont.resumeWithException(e)
         }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    private fun getRange(): Range<Int>? {
-        val mCameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
-        var chars: CameraCharacteristics? = null
-        try {
-            chars = mCameraManager.getCameraCharacteristics(cameraId)
-        } catch (e: CameraAccessException) {
-            e.printStackTrace()
-        }
-        val ranges = chars!!.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES)!!
-        var result: Range<Int>? = null
-        for (range in ranges) {
-            Log.d(TAG, "getRange: [" + range.lower + ", " + range.upper + "]")
-            //帧率不能太低，大于10
-//            if (range.getLower() < 10)
-//                continue;
-            if (result == null) result = range else if (range.lower <= 15 && range.upper - range.lower > result.upper - result.lower) result = range
-        }
-
-        val streamConfigurationMap = chars.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-        val sizeArr = streamConfigurationMap?.getOutputSizes(ImageFormat.YUV_420_888)
-        for (size in sizeArr ?: emptyArray()) {
-            Log.d(TAG, "getRange: size $size")
-        }
-
-        return result
     }
 
     private inner class OnImageAvailableListenerImpl : OnImageAvailableListener {

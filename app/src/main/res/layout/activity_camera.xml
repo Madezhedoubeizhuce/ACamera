@@ -8,7 +8,8 @@
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@+id/layoutControl">
+        android:layout_above="@+id/layoutControl"
+        android:background="@color/colorBlack">
 
         <com.alpha.acamera.camera.widget.AutoFitSurfaceView
             android:id="@+id/svCamera"

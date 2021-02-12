@@ -19,6 +19,7 @@ package com.alpha.acamera.camera.widget
 import android.content.Context
 import android.util.AttributeSet
 import android.view.SurfaceView
+import com.alpha.acamera.R
 import kotlin.math.roundToInt
 
 /**
@@ -37,6 +38,23 @@ class AutoFitSurfaceView @JvmOverloads constructor(
     private var originW = 0
     private var originH = 0
 
+    // 是否铺满view，视频需要全屏显示预览时设为true
+    private var fillView = false
+
+    init {
+        attrs?.let {
+            val typedArray = context.obtainStyledAttributes(attrs, R.styleable.AutoFitSurfaceView)
+
+            fillView = typedArray.getBoolean(R.styleable.AutoFitSurfaceView_fillView, false)
+
+            typedArray.recycle()
+        }
+    }
+
+    fun setFillView(fill: Boolean) {
+        fillView = fill
+    }
+
     /**
      * Sets the aspect ratio for this view. The size of the view will be
      * measured based on the ratio calculated from the parameters.
@@ -49,8 +67,6 @@ class AutoFitSurfaceView @JvmOverloads constructor(
 
         aspectRatio = width.toFloat() / height.toFloat()
         calcAspectSize(aspectRatio)
-        originW = this.width
-        originH = this.height
 
         needMove = true
         holder.setFixedSize(width, height)
@@ -81,7 +97,9 @@ class AutoFitSurfaceView @JvmOverloads constructor(
             val newTop = top - exceedH / 2
             val newBottom = bottom - exceedH / 2
 
-            if (exceedW > 0 || exceedH > 0) {
+            if (exceedW != 0 || exceedH != 0) {
+//            Log.d(TAG, "onLayout: $left $top, $right $bottom")
+//            Log.d(TAG, "onLayout: $newLeft $newTop, $newRight $newBottom")
                 layout(newLeft, newTop, newRight, newBottom)
             }
         }
@@ -91,12 +109,35 @@ class AutoFitSurfaceView @JvmOverloads constructor(
         val newWidth: Int
         val newHeight: Int
         val actualRatio = if (this.width > this.height) aspectRatio else 1f / aspectRatio
-        if (this.width < this.height * actualRatio) {
-            newHeight = this.height
-            newWidth = (this.height * actualRatio).roundToInt()
+
+        if (fillView) {
+            // 视频铺满view
+            if (this.width < this.height * actualRatio) {
+                // view宽高比小于视频宽高比时，增加view的宽度以适应视频
+                newHeight = this.height
+                newWidth = (this.height * actualRatio).roundToInt()
+            } else if (this.width > this.height * actualRatio) {
+                // view的宽高比大于视频宽高比时，增大view的高度以适应视频
+                newWidth = this.width
+                newHeight = (this.width / actualRatio).roundToInt()
+            } else {
+                newWidth = this.width
+                newHeight = this.height
+            }
         } else {
-            newWidth = this.width
-            newHeight = (this.width / actualRatio).roundToInt()
+            // 视频不铺满view
+            if (this.width < this.height * actualRatio) {
+                // view宽高比小于视频宽高比时，减小view的高度以适应视频
+                newWidth = this.width
+                newHeight = (this.width / actualRatio).roundToInt()
+            } else if (this.width > this.height * actualRatio) {
+                // view的宽高比大于视频宽高比时，减小view的宽度以适应视频
+                newHeight = this.height
+                newWidth = (this.height * actualRatio).roundToInt()
+            } else {
+                newWidth = this.width
+                newHeight = this.height
+            }
         }
 
         aspectWidth = newWidth
