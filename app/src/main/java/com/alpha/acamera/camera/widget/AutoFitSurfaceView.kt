@@ -18,6 +18,7 @@ package com.alpha.acamera.camera.widget
 
 import android.content.Context
 import android.util.AttributeSet
+import android.util.Log
 import android.view.SurfaceView
 import com.alpha.acamera.R
 import kotlin.math.roundToInt
@@ -70,6 +71,7 @@ class AutoFitSurfaceView @JvmOverloads constructor(
 
         needMove = true
         holder.setFixedSize(width, height)
+        Log.d(TAG, "setAspectRatio: $width x $height")
         requestLayout()
     }
 
@@ -98,8 +100,8 @@ class AutoFitSurfaceView @JvmOverloads constructor(
             val newBottom = bottom - exceedH / 2
 
             if (exceedW != 0 || exceedH != 0) {
-//            Log.d(TAG, "onLayout: $left $top, $right $bottom")
-//            Log.d(TAG, "onLayout: $newLeft $newTop, $newRight $newBottom")
+                Log.d(TAG, "onLayout: $left $top, $right $bottom")
+                Log.d(TAG, "onLayout: $newLeft $newTop, $newRight $newBottom")
                 layout(newLeft, newTop, newRight, newBottom)
             }
         }
@@ -108,40 +110,42 @@ class AutoFitSurfaceView @JvmOverloads constructor(
     private fun calcAspectSize(aspectRatio: Float) {
         val newWidth: Int
         val newHeight: Int
-        val actualRatio = if (this.width > this.height) aspectRatio else 1f / aspectRatio
+        val actualRatio = if (originW > originH) aspectRatio else 1f / aspectRatio
 
         if (fillView) {
             // 视频铺满view
-            if (this.width < this.height * actualRatio) {
+            if (originW < originH * actualRatio) {
                 // view宽高比小于视频宽高比时，增加view的宽度以适应视频
-                newHeight = this.height
-                newWidth = (this.height * actualRatio).roundToInt()
-            } else if (this.width > this.height * actualRatio) {
+                newHeight = originH
+                newWidth = (originH * actualRatio).roundToInt()
+            } else if (originW > originH * actualRatio) {
                 // view的宽高比大于视频宽高比时，增大view的高度以适应视频
-                newWidth = this.width
-                newHeight = (this.width / actualRatio).roundToInt()
+                newWidth = originW
+                newHeight = (originW / actualRatio).roundToInt()
             } else {
-                newWidth = this.width
-                newHeight = this.height
+                newWidth = originW
+                newHeight = originH
             }
         } else {
             // 视频不铺满view
-            if (this.width < this.height * actualRatio) {
+            if (originW < originH * actualRatio) {
                 // view宽高比小于视频宽高比时，减小view的高度以适应视频
-                newWidth = this.width
-                newHeight = (this.width / actualRatio).roundToInt()
-            } else if (this.width > this.height * actualRatio) {
+                newWidth = originW
+                newHeight = (originW / actualRatio).roundToInt()
+            } else if (originW > originH * actualRatio) {
                 // view的宽高比大于视频宽高比时，减小view的宽度以适应视频
-                newHeight = this.height
-                newWidth = (this.height * actualRatio).roundToInt()
+                newHeight = originH
+                newWidth = (originH * actualRatio).roundToInt()
             } else {
-                newWidth = this.width
-                newHeight = this.height
+                newWidth = originW
+                newHeight = originH
             }
         }
 
         aspectWidth = newWidth
         aspectHeight = newHeight
+
+        Log.d(TAG, "calcAspectSize: $aspectWidth x $aspectHeight")
     }
 
     companion object {

@@ -22,7 +22,7 @@
         android:layout_width="match_parent"
         android:layout_height="200dp"
         android:layout_above="@+id/layoutControl"
-        android:visibility="visible" />
+        android:visibility="gone" />
 
     <RelativeLayout
         android:id="@+id/layoutControl"
