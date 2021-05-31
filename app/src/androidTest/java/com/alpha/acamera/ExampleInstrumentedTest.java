@@ -23,5 +23,6 @@ public class ExampleInstrumentedTest {
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         assertEquals("com.alpha.acamera", appContext.getPackageName());
+		// test
     }
 }
