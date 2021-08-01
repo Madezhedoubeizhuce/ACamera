@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.alpha.camera.CameraActivity
 import java.util.*
 
 class MainActivity : AppCompatActivity() {

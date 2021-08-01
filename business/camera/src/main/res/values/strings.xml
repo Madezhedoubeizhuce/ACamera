@@ -1,0 +1,7 @@
+<resources>
+    <string name="switch_camera">切换</string>
+    <string name="preview_picture">浏览相片</string>
+    <string name="take_picture">拍照</string>
+    <string name="common">拍照</string>
+    <string name="professional">专业</string>
+</resources>

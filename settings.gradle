@@ -1,2 +1,9 @@
 include ':app'
 rootProject.name = 'ACamera'
+include ':camera'
+include ':libyuv',':turbojpeg', ':videoplayer'
+
+project(':camera').projectDir = new File('business/camera')
+project(':libyuv').projectDir = new File('base/libyuv')
+project(':turbojpeg').projectDir = new File('base/turbojpeg')
+project(':videoplayer').projectDir = new File('base/videoplayer')
