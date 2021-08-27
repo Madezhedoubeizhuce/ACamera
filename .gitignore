@@ -16,3 +16,5 @@
 /.idea
 /turbojpeg/src/main/obj
 /turbojpeg/src/main/libs
+/base/libyuv/src/main/cpp/build
+/base/turbojpeg/src/main/cpp/build
