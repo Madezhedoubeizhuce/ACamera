@@ -1,0 +1,38 @@
+ext {
+//    kotlin_version = '1.4.10'
+    kotlin_jvm_target = '1.8'
+    jdkVersion = 1.8
+
+    android = [
+            compileSdkVersion: 29,
+            buildToolsVersion: "29.0.2",
+            applicationId    : "com.alpha.acamera",
+            minSdkVersion    : 19,
+            targetSdkVersion : 29,
+            versionCode      : 1,
+            versionName      : "1.0"
+    ]
+
+    dependencies = [
+            appcompat : "androidx.appcompat:appcompat:1.2.0",
+            constraintlayout : 'androidx.constraintlayout:constraintlayout:2.0.1',
+            kotlinStdlibJdk8 : "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version",
+            kotlinxCoroutinesAndroid : 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.5',
+            lifecycleRuntimeKtx : 'androidx.lifecycle:lifecycle-runtime-ktx:2.2.0',
+            legacySupportV4 : 'androidx.legacy:legacy-support-v4:1.0.0',
+            coreKtx : "androidx.core:core-ktx:1.3.1",
+            kotlinStdlibJdk7 : "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version",
+            material : 'com.google.android.material:material:1.3.0',
+            kotlinStdlib : "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version",
+
+            PhotoView : 'com.github.chrisbanes:PhotoView:2.3.0',
+            ijkplayerJava : 'tv.danmaku.ijk.media:ijkplayer-java:0.8.3',
+            dagger : 'com.google.dagger:dagger:2.36',
+            daggerCompile : 'com.google.dagger:dagger-compiler:2.36',
+    ]
+
+    modules = [
+            moduleCamera : ':business:camera',
+            moduleBaseLib: ':base:baselib'
+    ]
+}
